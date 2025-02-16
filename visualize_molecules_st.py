@@ -11,6 +11,13 @@ import plotly.graph_objects as go
 
 # Set page config to narrow layout
 st.set_page_config(layout="centered", page_title="Molecule Visualizer")
+atom_colors = {
+    'H': '#FFFFFF',  # Hydrogen - White
+    'C': '#2C2C2C',  # Carbon - Dark Gray
+    'N': '#3050F8',  # Nitrogen - Deep Blue
+    'O': '#FF0D0D',  # Oxygen - Bright Red
+    'F': '#90E050'   # Fluorine - Light Green
+}
 
 
 def project_3d_to_2d(pos_3d):
@@ -34,10 +41,14 @@ def create_3d_plotly(pos_3d, atom_labels, edges, custom_edges):
         y=pos_3d_np[:, 1],
         z=pos_3d_np[:, 2],
         mode='markers+text',
-        marker=dict(size=10, color='lightblue'),
+        marker=dict(size=10,
+                    color=[atom_colors.get(atom_labels[i].split(':')[1], 'lightblue') for i in range(len(atom_labels))],
+                    line_width=1,
+                    line_color='black'
+                    ),
         text=[atom_labels[i] for i in range(len(atom_labels))],
         hoverinfo='text',
-        textposition="top center"
+        textposition="top center",
     ))
 
     # Add original edges
@@ -47,7 +58,7 @@ def create_3d_plotly(pos_3d, atom_labels, edges, custom_edges):
             y=[pos_3d_np[edge[0], 1], pos_3d_np[edge[1], 1]],
             z=[pos_3d_np[edge[0], 2], pos_3d_np[edge[1], 2]],
             mode='lines',
-            line=dict(color='black', width=2),
+            line=dict(color='black', width=1),
             hoverinfo='none'
         ))
 
@@ -58,7 +69,7 @@ def create_3d_plotly(pos_3d, atom_labels, edges, custom_edges):
             y=[pos_3d_np[edge[0], 1], pos_3d_np[edge[1], 1]],
             z=[pos_3d_np[edge[0], 2], pos_3d_np[edge[1], 2]],
             mode='lines',
-            line=dict(color='green', width=2, dash='dash'),
+            line=dict(color='green', width=1, dash='dash'),
             hoverinfo='none'
         ))
 
@@ -105,7 +116,7 @@ def create_2d_plotly(pos, atom_labels, existing_edges, custom_edges, original_no
         edge_traces.append(go.Scatter(
             x=[x0, x1, None],
             y=[y0, y1, None],
-            line=dict(width=1.5, color='green', dash='dash'),
+            line=dict(width=1, color='green', dash='dash'),
             hoverinfo='none',
             mode='lines'
         ))
@@ -114,12 +125,15 @@ def create_2d_plotly(pos, atom_labels, existing_edges, custom_edges, original_no
     node_x = []
     node_y = []
     node_text = []
+    node_colors = []
 
     for node in range(original_node_count):
         x, y = pos[node]
         node_x.append(x)
         node_y.append(y)
         node_text.append(atom_labels[node])
+        color_name = atom_labels[node].split(':')[1]
+        node_colors.append(atom_colors.get(color_name, 'lightblue'))
 
     node_trace = go.Scatter(
         x=node_x,
@@ -129,7 +143,7 @@ def create_2d_plotly(pos, atom_labels, existing_edges, custom_edges, original_no
         text=node_text,
         textposition="top center",
         marker=dict(
-            color='lightblue',
+            color=node_colors,
             size=20,
             line_width=1,
             line_color='black'
@@ -185,7 +199,7 @@ def get_atom_symbol(features):
 
 dataset = load_dataset()
 
-st.title('Molecule Visualizer')
+st.title('MOLEX - Molecule Explorer')
 
 name_or_smiles = st.text_input('Enter molecule name or SMILES', 'gdb_26883')
 
@@ -198,7 +212,7 @@ if name_or_smiles:
         data, rdkit_mol = find_molecule(name_or_smiles, dataset)
 
     if data is not None and rdkit_mol is not None:
-        st.write(f'Molecule found! SMILES: {data.smiles}')
+        st.write(f'SMILES: `{data.smiles}`')
 
         # Show SMILES visualization
         st.subheader("SMILES Visualization")
@@ -222,7 +236,7 @@ if name_or_smiles:
                 st.error("Source and target node lists must have the same length!")
             else:
                 # Validate node indices
-                invalid_nodes = [n for n in source_nodes + target_nodes if n >= num_nodes]
+                invalid_nodes = [n for n in source_nodes + target_nodes if n >= num_nodes]  #  checking if all the nodes are within the range of the number of nodes (+ here is concatenation)
                 if invalid_nodes:
                     st.error(f"Invalid node indices: {invalid_nodes}. Available nodes are 0-{num_nodes - 1}")
                 else:
@@ -230,16 +244,16 @@ if name_or_smiles:
 
                     # Project QM9 3D coordinates to 2D
                     pos_2d = project_3d_to_2d(data.pos)
-                    pos_2d = pos_2d * 50
+                    # pos_2d = pos_2d * 10  # Scale up for better visualization (use if getting an img)
                     pos = {i: (pos_2d[i, 0], pos_2d[i, 1]) for i in range(num_nodes)}
 
                     # Create 2D interactive plot
-                    st.subheader("2D Structure (Pan and Zoom)")
+                    st.subheader("2D Structure")
                     fig2d = create_2d_plotly(pos, atom_labels, existing_edges, custom_edges, num_nodes)
                     st.plotly_chart(fig2d, use_container_width=True)
 
                     # Create 3D interactive plot
-                    st.subheader("3D Structure (Rotate and Zoom)")
+                    st.subheader("3D Structure")
                     fig3d = create_3d_plotly(data.pos, atom_labels, existing_edges, custom_edges)
                     st.plotly_chart(fig3d, use_container_width=True)
 
