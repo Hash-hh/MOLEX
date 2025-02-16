@@ -8,25 +8,10 @@ import networkx as nx
 import numpy as np
 import torch
 import plotly.graph_objects as go
+from utils import project_3d_to_2d, load_dataset, find_molecule, get_atom_symbol, atom_colors
 
 # Set page config to narrow layout
-st.set_page_config(layout="centered", page_title="Molecule Visualizer")
-atom_colors = {
-    'H': '#FFFFFF',  # Hydrogen - White
-    'C': '#2C2C2C',  # Carbon - Dark Gray
-    'N': '#3050F8',  # Nitrogen - Deep Blue
-    'O': '#FF0D0D',  # Oxygen - Bright Red
-    'F': '#90E050'   # Fluorine - Light Green
-}
-
-
-def project_3d_to_2d(pos_3d):
-    """Project 3D coordinates to 2D using PCA-like projection"""
-    pos_3d = pos_3d.cpu().numpy()
-    pos_3d = pos_3d - pos_3d.mean(axis=0)
-    _, _, vh = np.linalg.svd(pos_3d)
-    return pos_3d @ vh.T[:, :2]
-
+st.set_page_config(layout="centered", page_title="Playground", page_icon="🧪")
 
 def create_3d_plotly(pos_3d, atom_labels, edges, custom_edges):
     """Create an interactive 3D plot using Plotly"""
@@ -41,9 +26,9 @@ def create_3d_plotly(pos_3d, atom_labels, edges, custom_edges):
         y=pos_3d_np[:, 1],
         z=pos_3d_np[:, 2],
         mode='markers+text',
-        marker=dict(size=10,
+        marker=dict(size=15,
                     color=[atom_colors.get(atom_labels[i].split(':')[1], 'lightblue') for i in range(len(atom_labels))],
-                    line_width=1,
+                    line_width=2,
                     line_color='black'
                     ),
         text=[atom_labels[i] for i in range(len(atom_labels))],
@@ -69,7 +54,7 @@ def create_3d_plotly(pos_3d, atom_labels, edges, custom_edges):
             y=[pos_3d_np[edge[0], 1], pos_3d_np[edge[1], 1]],
             z=[pos_3d_np[edge[0], 2], pos_3d_np[edge[1], 2]],
             mode='lines',
-            line=dict(color='green', width=1, dash='dash'),
+            line=dict(color='green', width=2, dash='dash'),
             hoverinfo='none'
         ))
 
@@ -174,27 +159,6 @@ def create_2d_plotly(pos, atom_labels, existing_edges, custom_edges, original_no
     return fig
 
 
-# Load the QM9 dataset
-@st.cache_data
-def load_dataset():
-    return torch_geometric.datasets.QM9(root='data/QM9')
-
-
-@st.cache_data
-def find_molecule(name_or_smiles, _dataset):
-    """Cache molecule search results"""
-    for data in _dataset:
-        if data.name == name_or_smiles or data.smiles == name_or_smiles:
-            mol = Chem.MolFromSmiles(data.smiles, sanitize=True)
-            return data, mol
-    return None, None
-
-
-def get_atom_symbol(features):
-    """Convert QM9 one-hot encoded features to atom symbol"""
-    atom_types = ['H', 'C', 'N', 'O', 'F']
-    idx = features[:5].argmax().item()
-    return atom_types[idx]
 
 
 dataset = load_dataset()
@@ -204,8 +168,8 @@ st.title('MOLEX — Playground')
 name_or_smiles = st.text_input('Enter molecule name or SMILES', 'gdb_26883')
 
 st.write("Enter edges in COO format (two rows of comma-separated indices)")
-row1 = st.text_input('Source nodes:', '0, 0, 5, 5, 5')
-row2 = st.text_input('Target nodes:', '8, 9, 6, 7, 8')
+row1 = st.text_input('Source nodes:', '0, 0, 3, 4, 5')
+row2 = st.text_input('Target nodes:', '8, 15, 10, 13, 8')
 
 if name_or_smiles:
     with st.spinner('Searching for molecule...'):
