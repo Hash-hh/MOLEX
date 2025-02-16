@@ -199,7 +199,7 @@ def get_atom_symbol(features):
 
 dataset = load_dataset()
 
-st.title('MOLEX - Molecule Explorer')
+st.title('MOLEX — Playground')
 
 name_or_smiles = st.text_input('Enter molecule name or SMILES', 'gdb_26883')
 
@@ -260,12 +260,12 @@ if name_or_smiles:
                     # Display atom mapping and edge information
                     col1, col2 = st.columns(2)
                     with col1:
-                        st.write("Atom Mapping:")
+                        st.subheader("Atom Mapping:")
                         for i in range(num_nodes):
-                            st.write(f"Index {i}: {get_atom_symbol(data.x[i])}")
+                            st.write(f"Index {i}: `{get_atom_symbol(data.x[i])}`")
 
                     with col2:
-                        st.write("Edge Information:")
+                        st.subheader("Edge Information:")
                         st.write("Number of original edges:", len(existing_edges))
                         st.write("Number of custom edges:", len(custom_edges))
 
